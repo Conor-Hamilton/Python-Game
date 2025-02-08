@@ -1,7 +1,6 @@
 import random
 
 class Animal:
-    population = []
     reproduction_energy_threshold = 15
     reproduction_energy_cost = 10
     hide_chance = 0.0 
@@ -13,7 +12,6 @@ class Animal:
         self.x = x 
         self.y = y 
         self.alive = True
-        self.__class__.population.append(self)
 
 
     def move(self, max_x, max_y):
@@ -36,7 +34,6 @@ class Animal:
     def die(self):
         if self.alive:
             self.alive = False
-            self.__class__.population.remove(self)
             print(f"{self.name} died.")
 
     def hide_successful(self):
@@ -58,9 +55,10 @@ class Herbivore(Animal):
         print(f"{self.name} grazes on a plant.")
 
 class Rabbit(Herbivore):
-    hide_chance = 0.3
-    reproduction_energy_threshold = 12
-    reproduction_energy_cost = 8
+    hide_chance = 0.5
+    reproduction_energy_threshold = 6
+    reproduction_energy_cost = 4
+    litter_size = 3
 
     def __init__(self, x, y):
         super().__init__("Rabbit", 10, x, y)
@@ -79,7 +77,7 @@ class Carnivore(Animal):
 class Fox(Carnivore):
     hide_chance = 0.2
     reproduction_energy_threshold = 20
-    preproduction_energy_cost = 12
+    reproduction_energy_cost = 12
 
     def __init__(self, x, y):
         super ().__init__("Fox", 20, x, y)
@@ -124,7 +122,14 @@ class World:
         for predator in self.animals[:]:
             if isinstance(predator, Carnivore) and predator.alive:
                 for prey in self.animals[:]:
-                    if prey is not predator and prey.alive and (predator.x, predator.y) == (prey.x, prey.y):
+                    if isinstance(predator, Fox) and isinstance(prey, Rabbit):
+                        valid_target = True
+                    elif isinstance(predator, Wolf) and isinstance(prey, (Rabbit, Fox)):
+                        valid_target = True
+                    else:
+                        valid_target = False
+
+                    if valid_target and prey is not predator and prey.alive and (predator.x, predator.y) == (prey.x, prey.y):
                         predator.hunt(prey)
 
         for herbivore in self.animals[:]:
@@ -153,24 +158,42 @@ class World:
     def check_population(self):
         rabbit_count = len([a for a in self.animals if isinstance(a, Rabbit)])
         if rabbit_count <= 2:
+            starving_predators = []
             for predator in self.animals:
                 if isinstance(predator, (Fox, Wolf)):
                     predator.energy -= 3
-                    print(f"{predator.name} is starving due to low rabbits!")
+                    starving_predators.append(predator.name)
+            if starving_predators:
+                predator_types = set(starving_predators)
+                for pred in predator_types:
+                    count = starving_predators.count(pred)
+                    print(f"{count} {pred}(s) are starving due to low rabbits!")
+
 
     def status_report(self):
         print("\n--- Status Report ---")
-        print(f"Rabbits: {len(Rabbit.population)}")
-        print(f"Foxes: {len(Fox.population)}")
-        print(f"Wolves: {len(Wolf.population)}")
+        rabbits = [a for a in self.animals if isinstance(a, Rabbit)]
+        foxes = [a for a in self.animals if isinstance(a, Fox)]
+        wolves = [a for a in self.animals if isinstance(a, Wolf)]
+        print(f"Rabbits: {len(rabbits)}")
+        print(f"Foxes: {len(foxes)}")
+        print(f"Wolves: {len(wolves)}")
         print(f"Plants: {len(self.plants)}")
 
 
-# Example Usage
+
 world = World()
 world.add_animal(Rabbit(5, 5))
 world.add_animal(Rabbit(8, 8))
+world.add_animal(Rabbit(8, 8))
+world.add_animal(Rabbit(8, 8))
+world.add_animal(Rabbit(8, 8))
+world.add_animal(Rabbit(8, 8))
+world.add_animal(Rabbit(8, 8))
+world.add_animal(Rabbit(8, 8))
 world.add_animal(Fox(3, 3))
+world.add_animal(Fox(3, 3))
+world.add_animal(Wolf(10, 10))
 world.add_animal(Wolf(10, 10))
 
 for day in range(30):
